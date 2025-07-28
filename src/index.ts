@@ -1,10 +1,15 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { Prisma, PrismaClient } from "./generated/prisma";
+import rolesRoutes from './routes/roles';
 
 const app = express();
 app.use(express.json());
 
 const PORT = 3000;
+
+const router = Router();
+router.use('/roles', rolesRoutes);
+app.use(router);
 
 app.get('/', (_, res) => {
   res.send('Hi');
@@ -74,22 +79,6 @@ app.delete('/posts/:id', async (req, res) => {
   res.json({ message: 'Post deleted' })
 })
 
-
-// ====== roles ======
-app.post('/roles', async (req, res) => {
-  try {
-    const { name } = req.body
-    const role = await prisma.role.create({ data: { name } })
-    res.json(role)
-  } catch (error) {
-    res.status(500).json({ error: 'Error creating role' })
-  }
-})
-
-app.get('/roles', async (_, res) => {
-  const roles = await prisma.role.findMany()
-  res.json(roles)
-})
 
 // User Role Assignment
 app.post('/users/:userId/roles', async (req, res) => {
