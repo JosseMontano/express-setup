@@ -3,3 +3,4 @@ package-lock.json
 build
 /src/generated/prisma
 .env
+pnpm-lock.yaml
