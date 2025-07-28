@@ -18,6 +18,13 @@ model User {
   id    Int    @id @default(autoincrement())
   ci    String
   posts Post[]
+  roles   Role[]    @relation("UserRoles")
+}
+
+model Role {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique
+  users   User[]    @relation("UserRoles")
 }
 
 model Post {

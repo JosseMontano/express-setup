@@ -1,5 +1,5 @@
 import express from 'express';
-import { PrismaClient } from "./generated/prisma";
+import { Prisma, PrismaClient } from "./generated/prisma";
 
 const app = express();
 app.use(express.json());
@@ -23,7 +23,11 @@ app.post('/users', async (req, res) => {
 });
 
 app.get('/users', async (_, res) => {
-  const users = await prisma.user.findMany();
+  const users = await prisma.user.findMany({
+    include: {
+      roles: true,
+    }
+  });
   return res.send(users);
 });
 
@@ -68,6 +72,101 @@ app.delete('/posts/:id', async (req, res) => {
     where: { id: Number(id) }
   })
   res.json({ message: 'Post deleted' })
+})
+
+
+// ====== roles ======
+app.post('/roles', async (req, res) => {
+  try {
+    const { name } = req.body
+    const role = await prisma.role.create({ data: { name } })
+    res.json(role)
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating role' })
+  }
+})
+
+app.get('/roles', async (_, res) => {
+  const roles = await prisma.role.findMany()
+  res.json(roles)
+})
+
+// User Role Assignment
+app.post('/users/:userId/roles', async (req, res) => {
+  try {
+    const { userId } = req.params
+    const { roleId } = req.body
+
+    // Convert string array to number array
+    const roleIds = Array.isArray(roleId)
+      ? roleId.map(id => Number(id))
+      : [Number(roleId)];
+
+    // Validate all role IDs are numbers
+    if (roleIds.some(isNaN)) {
+      return res.status(400).json({ error: 'Invalid role ID format' });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: Number(userId) },
+      data: {
+        roles: {
+          connect: roleIds.map(id => ({ id }))
+        }
+      },
+      include: { roles: true }
+    });
+
+
+    res.json(user)
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      switch (error.code) {
+        case 'P2025':
+          return res.status(404).json({ error: 'User or Role not found' })
+        case 'P2016':
+          return res.status(400).json({ error: 'Invalid data format' })
+        default:
+          console.error('Prisma error:', error)
+          return res.status(500).json({ error: 'Database error' })
+      }
+    } else if (error instanceof Error) {
+      // Handle other Error instances
+      console.error('Unexpected error:', error)
+      return res.status(500).json({ error: error.message })
+    }
+    // Handle completely unknown errors
+    console.error('Unknown error:', error)
+    res.status(500).json({ error: 'An unknown error occurred' })
+  }
+})
+
+app.delete('/users/:userId/roles/:roleId', async (req, res) => {
+  try {
+    const { userId, roleId } = req.params
+
+    const user = await prisma.user.update({
+      where: { id: Number(userId) },
+      data: { roles: { disconnect: { id: Number(roleId) } } },
+      include: { roles: true }
+    })
+
+    res.json(user)
+  } catch (error) {
+    res.status(500).json({ error: 'Error removing role' })
+  }
+})
+
+// Get user roles
+app.get('/users/:userId/roles', async (req, res) => {
+  const { userId } = req.params
+  const user = await prisma.user.findUnique({
+    where: { id: Number(userId) },
+    include: { roles: true }
+  })
+
+  if (!user) return res.status(404).json({ error: 'User not found' })
+  res.json(user.roles)
 })
 
 app.listen(PORT, () => {
