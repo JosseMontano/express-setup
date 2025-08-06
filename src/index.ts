@@ -1,9 +1,17 @@
 import express, { Router } from 'express';
 import { Prisma, PrismaClient } from "./generated/prisma";
 import rolesRoutes from './routes/roles';
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
+
+app.use(
+    cors({
+      credentials: true,
+      origin: [ "exp://192.168.1.13:19000", "http://localhost:8081/"],
+    })
+  );
 
 const PORT = 3000;
 
