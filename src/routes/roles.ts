@@ -19,4 +19,32 @@ router.get('/', async (_, res) => {
   res.json(roles)
 })
 
+router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  try {
+    const updatedRole = await prisma.role.update({
+      where: { id: Number(id) },
+      data: { name },
+    });
+    res.json(updatedRole);
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating role' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.role.delete({
+      where: { id: Number(id) },
+    });
+    res.json({ message: 'Role deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting role' });
+  }
+});
+
 export default router;
